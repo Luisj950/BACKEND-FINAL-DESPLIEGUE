@@ -1,9 +1,19 @@
 // src/users/entities/user.entity.ts
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm'; // <-- Asegúrate de importar UpdateDateColumn
+
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  ManyToOne,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { Rol } from '../enums/rol.enum';
-import { Mascota } from '../entities/mascota.entity';
-import { ClinicaVeterinaria } from '../entities/clinica.entity';
-import { Cita } from '../entities/cita.entity';
+import { Mascota } from './mascota.entity';
+import { ClinicaVeterinaria } from './clinica.entity';
+import { Cita } from './cita.entity';
+import { MensajeChat } from '../../chat/entities/mensaje-chat.entity';
 
 @Entity({ name: 'users' })
 export class User {
@@ -19,7 +29,7 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  @Column()
+  @Column({ select: false })
   password: string;
 
   @Column({ nullable: true })
@@ -28,7 +38,11 @@ export class User {
   @Column({ nullable: true })
   direccion: string;
 
-  @Column({ type: 'enum', enum: Rol, default: Rol.PROPIETARIO })
+  @Column({
+    type: 'enum',
+    enum: Rol,
+    default: Rol.PROPIETARIO,
+  })
   rol: Rol;
 
   @Column({ nullable: true })
@@ -37,10 +51,10 @@ export class User {
   @CreateDateColumn()
   fechaCreacion: Date;
 
-  @UpdateDateColumn() // <-- ¡ESTA ES LA LÍNEA CRUCIAL QUE DEBE ESTAR AHÍ!
-  fechaActualizacion: Date; // Puedes nombrar la columna como quieras, e.g., 'updatedAt'
+  @UpdateDateColumn()
+  fechaActualizacion: Date;
 
-  // --- RELACIONES ---
+  // --- Relaciones ---
 
   @OneToMany(() => Mascota, (mascota) => mascota.propietario)
   mascotas: Mascota[];
@@ -50,4 +64,14 @@ export class User {
 
   @OneToMany(() => Cita, (cita) => cita.veterinario)
   citasAsignadas: Cita[];
+
+  // --- Relaciones de Chat ---
+
+  @OneToMany(() => MensajeChat, (mensaje) => mensaje.emisor)
+  mensajesEnviados: MensajeChat[];
+
+  // --- ✅ CAMBIO AQUÍ ---
+  // Se añade la relación que faltaba para los mensajes recibidos.
+  @OneToMany(() => MensajeChat, (mensaje) => mensaje.destinatario)
+  mensajesRecibidos: MensajeChat[];
 }
