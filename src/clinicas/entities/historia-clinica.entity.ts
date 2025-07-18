@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, OneToMany } from 'typeorm';
-import { Mascota } from './mascota.entity';
+import { Mascota } from '../../mascotas/entities/mascota.entity';
 import { DetalleHistoriaClinica } from './detalle-historia-clinica.entity';
 
 @Entity({ name: 'historias_clinicas' })

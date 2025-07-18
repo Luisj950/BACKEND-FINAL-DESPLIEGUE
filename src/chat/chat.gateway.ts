@@ -46,6 +46,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     const emisorId = client.handshake.auth.userId;
     if (!emisorId) return;
 
+    // ✅ Mejora opcional: También se puede evitar que un usuario se una a un chat consigo mismo.
+    if (emisorId === payload.receptorId) return;
+
     const roomId = this.getRoomId(emisorId, payload.receptorId);
     client.join(roomId);
 
@@ -61,6 +64,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     const emisorId = client.handshake.auth.userId;
     if (!emisorId) return;
     
+    // ✅ CAMBIO IMPLEMENTADO: Evita que un usuario se envíe mensajes a sí mismo.
+    if (emisorId === payload.receptorId) {
+      return; // Detiene la ejecución si el emisor y el receptor son el mismo.
+    }
+    
     const nuevoMensaje = await this.chatService.crearMensaje(
       payload.mensaje,
       emisorId,
@@ -68,8 +76,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
     );
     
     const roomId = this.getRoomId(emisorId, payload.receptorId);
-
-    // ✅ ASÍ QUEDA: Se añade el log para verificar que se está emitiendo el mensaje.
+    
     console.log(`EMITIENDO 'nuevoMensaje' a la sala ${roomId}:`, nuevoMensaje);
     
     this.server.to(roomId).emit('nuevoMensaje', nuevoMensaje);

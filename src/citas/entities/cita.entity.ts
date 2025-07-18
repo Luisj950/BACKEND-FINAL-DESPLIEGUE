@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
-import { Mascota } from './mascota.entity';
+import { Mascota } from '../../mascotas/entities/mascota.entity';
 import { User } from '../../users/entities/user.entity';
 
 // Enum para los posibles estados de una cita

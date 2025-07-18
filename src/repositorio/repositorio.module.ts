@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { RepositorioClinicoAnonimizado } from '../users/entities/repositorio-clinico.entity';
+import { RepositorioClinicoAnonimizado } from '../clinicas/entities/repositorio-clinico.entity';
 
 @Module({
   imports: [

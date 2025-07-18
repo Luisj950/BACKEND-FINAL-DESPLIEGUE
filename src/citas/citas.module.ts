@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Cita } from '../users/entities/cita.entity';
+import { Cita } from './entities/cita.entity';
 
 @Module({
   imports: [

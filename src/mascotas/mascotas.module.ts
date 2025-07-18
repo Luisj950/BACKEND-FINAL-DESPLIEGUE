@@ -1,13 +1,19 @@
-import { Module } from '@nestjs/common';
+// src/mascotas/mascotas.module.ts
+
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { MascotasService } from './mascotas.service';
+import { Mascota } from './entities/mascota.entity';
 import { MascotasController } from './mascotas.controller';
-// --- RUTA DE IMPORTACIÓN CORREGIDA ---
-import { Mascota } from '../users/entities/mascota.entity';
+import { MascotasService } from './mascotas.service';
+import { MonitoreoModule } from '../monitoreo/monitoreo.module'; // ✅ Importar MonitoreoModule
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Mascota])],
+  imports: [
+    TypeOrmModule.forFeature([Mascota]),
+    forwardRef(() => MonitoreoModule), // ✅ Añadir forwardRef a MonitoreoModule
+  ],
   controllers: [MascotasController],
   providers: [MascotasService],
+  exports: [TypeOrmModule], // ✅ Asegúrate de exportar TypeOrmModule
 })
 export class MascotasModule {}

@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
-import { DetalleHistoriaClinica } from '../entities/detalle-historia-clinica.entity';
+import { DetalleHistoriaClinica } from './detalle-historia-clinica.entity';
 
 @Entity({ name: 'tratamientos' })
 export class Tratamiento {

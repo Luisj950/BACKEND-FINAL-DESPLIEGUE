@@ -2,27 +2,18 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-// Módulos principales existentes
+// --- Importación de Módulos ---
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
-
-// --- NUEVOS MÓDULOS PARA IMPORTAR ---
 import { MascotasModule } from './mascotas/mascotas.module';
-import { ClinicasModule } from './clinicas/clinicas.module';
 import { HistoriasClinicasModule } from './historias-clinicas/historias-clinicas.module';
-import { TratamientosModule } from './tratamientos/tratamientos.module';
-import { CitasModule } from './citas/citas.module';
-import { MonitoreoModule } from './monitoreo/monitoreo.module';
-import { ChatModule } from './chat/chat.module';
-import { RepositorioModule } from './repositorio/repositorio.module';
+import { ClinicasModule } from './clinicas/clinicas.module';
+import { ChatModule } from './chat/chat.module'; // ✅ 1. Importa TODOS tus módulos
+import { CitasModule } from './citas/citas.module'; 
 
 @Module({
   imports: [
-    // --- MÓDULOS DE CONFIGURACIÓN ---
-    ConfigModule.forRoot({
-      isGlobal: true, // Hace que las variables de entorno estén disponibles globalmente
-      envFilePath: '.env', // Especifica la ruta a tu archivo .env
-    }),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -33,25 +24,24 @@ import { RepositorioModule } from './repositorio/repositorio.module';
         username: configService.get<string>('DB_USERNAME'),
         password: String(configService.get('DB_PASSWORD')),
         database: configService.get<string>('DB_DATABASE'),
-        autoLoadEntities: true, // Carga automáticamente todas las entidades registradas
-        synchronize: true,      // Sincroniza el esquema de la BD (solo para desarrollo)
-        logging: ['query', 'error', 'schema'], // <--- ¡ESTO ES LO IMPORTANTE PARA LA DEPURACIÓN!
+        
+        // ✅ 2. Usa autoLoadEntities. Esto descubre todas las entidades automáticamente.
+        autoLoadEntities: true, 
+        
+        // Ya no necesitas la lista manual de "entities: [...]"
+
+        synchronize: true,
+        logging: ['query', 'error'],
       }),
     }),
-
-    // --- MÓDULOS DE FUNCIONALIDADES ---
+    // ✅ 3. Asegúrate de que TODOS tus módulos estén registrados aquí
     UsersModule,
     AuthModule,
     MascotasModule,
-    ClinicasModule,
     HistoriasClinicasModule,
-    TratamientosModule,
-    CitasModule,
-    MonitoreoModule,
+    ClinicasModule,
     ChatModule,
-    RepositorioModule,
+    CitasModule,
   ],
-  controllers: [], // Los controladores se definen dentro de sus módulos específicos
-  providers: [],   // Los proveedores se definen dentro de sus módulos específicos
 })
 export class AppModule {}

@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm'; // <-- Añadimos OneToMany
 import { HistoriaClinica } from './historia-clinica.entity';
 import { User } from '../../users/entities/user.entity';
-import { Tratamiento } from '../entities/tratamiento.entity'; // <-- Importamos Tratamiento
+import { Tratamiento } from './tratamiento.entity'; // <-- Importamos Tratamiento
 
 @Entity({ name: 'detalles_historia_clinica' })
 export class DetalleHistoriaClinica {

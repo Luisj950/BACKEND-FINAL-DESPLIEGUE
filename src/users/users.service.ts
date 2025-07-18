@@ -4,7 +4,7 @@ import {
   BadRequestException 
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Not } from 'typeorm';
 import { User } from '../users/entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -37,6 +37,15 @@ export class UsersService {
 
   async findAll(): Promise<UserWithoutPassword[]> {
     return this.userRepository.find();
+  }
+
+  // ✅ MÉTODO MODIFICADO: Ahora se llama findAllContacts y no filtra por rol.
+  async findAllContacts(currentUserId: number): Promise<User[]> {
+    return this.userRepository.find({
+      where: {
+        id: Not(currentUserId), // Excluye solo al usuario que hace la petición
+      },
+    });
   }
 
   async findOne(id: number): Promise<UserWithoutPassword> {

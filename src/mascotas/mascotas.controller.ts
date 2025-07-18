@@ -1,3 +1,5 @@
+// src/mascotas/mascotas.controller.ts
+
 import { 
   Controller, 
   Get, 
@@ -8,25 +10,35 @@ import {
   Delete, 
   UseGuards, 
   Req, 
-  UnauthorizedException,
-  ParseIntPipe 
+  ParseIntPipe,
+  UseInterceptors,     // ✅ 1. Se importa UseInterceptors
+  UploadedFiles        // ✅ 2. Se importa UploadedFiles
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express'; // ✅ 3. Se importa el interceptor de archivos
 import { MascotasService } from './mascotas.service';
 import { CreateMascotaDto } from './dto/create-mascota.dto';
 import { UpdateMascotaDto } from './dto/update-mascota.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { Request } from 'express';
-import { User } from '../users/entities/user.entity'; // O la ruta correcta a tu entidad
+import { User } from '../users/entities/user.entity';
 
 @Controller('mascotas')
-@UseGuards(AuthGuard('jwt')) // Protege todas las rutas del controlador
+@UseGuards(AuthGuard('jwt'))
 export class MascotasController {
   constructor(private readonly mascotasService: MascotasService) {}
 
   @Post()
-  create(@Body() createMotaDto: CreateMascotaDto, @Req() req: Request) {
+  // ✅ 4. Se usa el interceptor para capturar los archivos del campo 'files'
+  @UseInterceptors(FilesInterceptor('files', 5)) // Acepta hasta 5 archivos
+  create(
+    @Body() createMascotaDto: CreateMascotaDto, 
+    @Req() req: Request,
+    // ✅ 5. Se reciben los archivos en el método
+    @UploadedFiles() files: Array<Express.Multer.File> 
+  ) {
     const user = req.user as User;
-    return this.mascotasService.create(createMotaDto, user);
+    // ✅ 6. Se envían los datos y los archivos al servicio
+    return this.mascotasService.create(createMascotaDto, user, files);
   }
 
   @Get('/mis-mascotas')
@@ -34,8 +46,6 @@ export class MascotasController {
     const user = req.user as User;
     return this.mascotasService.findMascotasByPropietario(user.id);
   }
-
-  // --- MÉTODOS QUE FALTABAN ---
 
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
@@ -50,7 +60,6 @@ export class MascotasController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
     const user = req.user as User;
-    // Pasa el ID del usuario para verificar que es el dueño
     return this.mascotasService.remove(id, user.id);
   }
 }

@@ -31,7 +31,7 @@ export class ClinicaVeterinaria {
   fechaActualizacion: Date;
 
   // --- RELACIÓN ---
-  // Una clínica puede tener muchos usuarios (veterinarios)
+  // ✅ Correcto: la función anónima () => User ya ayuda a TypeORM.
   @OneToMany(() => User, (user) => user.clinica)
   veterinarios: User[];
 }
