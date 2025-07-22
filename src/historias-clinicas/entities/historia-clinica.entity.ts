@@ -1,6 +1,14 @@
 // src/historias-clinicas/entities/historia-clinica.entity.ts
 
-import { Entity, PrimaryGeneratedColumn, OneToOne, JoinColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  OneToOne,
+  OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
+  JoinColumn,
+} from 'typeorm';
 import { Mascota } from '../../mascotas/entities/mascota.entity';
 import { AtencionMedica } from './atencion-medica.entity';
 
@@ -9,16 +17,27 @@ export class HistoriaClinica {
   @PrimaryGeneratedColumn()
   id: number;
 
-  // Relación uno a uno con Mascota. La tabla 'historias_clinicas' tendrá la foreign key.
-  @OneToOne(() => Mascota, mascota => mascota.historiaClinica)
-  @JoinColumn()
+  // --- Relaciones Fundamentales ---
+
+  // Una historia clínica pertenece a UNA SOLA mascota.
+  @OneToOne(() => Mascota, (mascota) => mascota.historiaClinica, {
+    onDelete: 'CASCADE', // Si se borra la mascota, se borra su historia.
+  })
+  @JoinColumn() // Esto crea la columna `mascotaId` en esta tabla.
   mascota: Mascota;
 
-  // Una historia clínica tiene muchas atenciones médicas
-  @OneToMany(() => AtencionMedica, atencion => atencion.historiaClinica)
+  // Una historia clínica puede tener MUCHAS atenciones médicas.
+  @OneToMany(() => AtencionMedica, (atencion) => atencion.historiaClinica, {
+    cascade: true, // Permite guardar/actualizar atenciones junto con la historia.
+    eager: true,   // Carga automáticamente todas las atenciones al buscar una historia.
+  })
   atenciones: AtencionMedica[];
 
-  // Aquí podrías añadir más relaciones como:
-  // @OneToMany(() => Alergia, alergia => alergia.historiaClinica)
-  // alergias: Alergia[];
+  // --- Timestamps Automáticos ---
+
+  @CreateDateColumn()
+  fechaCreacion: Date;
+
+  @UpdateDateColumn()
+  fechaActualizacion: Date;
 }

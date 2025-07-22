@@ -1,18 +1,26 @@
+// src/app.module.ts
+
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-
-// --- Importación de Módulos ---
+import { ServeStaticModule } from '@nestjs/serve-static'; // ✅ 1. Importa el módulo
+import { join } from 'path'; // ✅ 2. Importa 'join' de path
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { MascotasModule } from './mascotas/mascotas.module';
 import { HistoriasClinicasModule } from './historias-clinicas/historias-clinicas.module';
 import { ClinicasModule } from './clinicas/clinicas.module';
-import { ChatModule } from './chat/chat.module'; // ✅ 1. Importa TODOS tus módulos
+import { ChatModule } from './chat/chat.module';
 import { CitasModule } from './citas/citas.module'; 
 
 @Module({
   imports: [
+    // ✅ 3. Añade esta configuración para servir archivos estáticos
+    ServeStaticModule.forRoot({
+      serveRoot: '/uploads',
+      rootPath: join(__dirname, '..', 'uploads'),
+    }),
+    
     ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -24,19 +32,15 @@ import { CitasModule } from './citas/citas.module';
         username: configService.get<string>('DB_USERNAME'),
         password: String(configService.get('DB_PASSWORD')),
         database: configService.get<string>('DB_DATABASE'),
-        
-        // ✅ 2. Usa autoLoadEntities. Esto descubre todas las entidades automáticamente.
         autoLoadEntities: true, 
-        
-        // Ya no necesitas la lista manual de "entities: [...]"
-
         synchronize: true,
         logging: ['query', 'error'],
       }),
     }),
-    // ✅ 3. Asegúrate de que TODOS tus módulos estén registrados aquí
-    UsersModule,
+    
+    // --- Módulos de la Aplicación ---
     AuthModule,
+    UsersModule,
     MascotasModule,
     HistoriasClinicasModule,
     ClinicasModule,

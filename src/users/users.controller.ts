@@ -1,36 +1,27 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Body, 
-  Patch, 
-  Param, 
-  Delete, 
-  UseGuards, 
-  ParseIntPipe,
+// src/users/users.controller.ts
+
+import {
+  Controller, Get, Post, Body, Patch, Param, Delete,
+  UseGuards, ParseIntPipe, ForbiddenException,
 } from '@nestjs/common';
-// ✅ 1. Importa tu nuevo decorador
 import { GetUser } from '../auth/decorators/get-user.decorator';
-import { User } from '../users/entities/user.entity'; // Importa la entidad User
+import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Rol } from '../auth/enums/rol.enum';
 
 @Controller('users')
-@UseGuards(AuthGuard('jwt'), RolesGuard) 
+@UseGuards(RolesGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
-
-  // ... (los otros endpoints como createByAdmin, findAll, etc. se quedan igual) ...
 
   @Post('create-by-admin')
   @Roles(Rol.ADMIN)
   createByAdmin(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto); 
+    return this.usersService.create(createUserDto);
   }
   
   @Get()
@@ -39,12 +30,11 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
-  // ✅ 2. MÉTODO MODIFICADO con el nuevo decorador
   @Get('contacts')
-  @Roles(Rol.ADMIN, Rol.PROPIETARIO)
-  findAllContacts(@GetUser() user: any) { // Se usa @GetUser() en lugar de @Req()
-    const currentUserId = user.sub; // El ID se extrae del objeto 'user'
-    return this.usersService.findAllContacts(currentUserId);
+  @Roles(Rol.ADMIN, Rol.PROPIETARIO, Rol.VETERINARIO)
+  findAllContacts(@GetUser() user: User) {
+    // ✅ CORRECCIÓN: Se usa user.id en lugar de user.sub
+    return this.usersService.findAllContacts(user.id);
   }
 
   @Get('pending-vets')
@@ -54,12 +44,26 @@ export class UsersController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.findOne(id);
+  @Roles(Rol.ADMIN, Rol.PROPIETARIO, Rol.VETERINARIO)
+  async findOne(@Param('id', ParseIntPipe) id: number, @GetUser() currentUser: User) {
+    const userToView = await this.usersService.findOne(id);
+    if (userToView.rol === Rol.ADMIN && currentUser.rol !== Rol.ADMIN) {
+        throw new ForbiddenException('No tienes permiso para ver este perfil.');
+    }
+    return userToView;
   }
 
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateUserDto: UpdateUserDto) {
+  @Roles(Rol.ADMIN, Rol.PROPIETARIO, Rol.VETERINARIO)
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateUserDto: UpdateUserDto,
+    @GetUser() currentUser: User
+  ) {
+    // ✅ CORRECCIÓN: Se usa currentUser.id en lugar de currentUser.sub
+    if (currentUser.rol !== Rol.ADMIN && currentUser.id !== id) {
+      throw new ForbiddenException('No tienes permiso para actualizar este perfil.');
+    }
     return this.usersService.update(id, updateUserDto);
   }
   

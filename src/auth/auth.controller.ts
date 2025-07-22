@@ -1,58 +1,44 @@
 // src/auth/auth.controller.ts
 
-import { Controller, Post, Body, Get, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Req, HttpCode, HttpStatus } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
-import { AuthGuard } from '@nestjs/passport'; // Es buena práctica usar el de @nestjs/passport
 import { Request } from 'express';
-import { RegisterVetDto } from './dto/register-vet.dto'; // <-- 1. IMPORTAR EL NUEVO DTO
+import { RegisterVetDto } from './dto/register-vet.dto';
+import { Public } from './decorators/public.decorator'; // ✅ 1. Se importa el decorador
+import { GetUser } from './decorators/get-user.decorator'; // Es mejor usar GetUser que @Req
+import { User } from 'src/users/entities/user.entity';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  /**
-   * Endpoint para que un usuario inicie sesión.
-   * Recibe email y password, y si son correctos, devuelve un JWT.
-   */
+  @Public() // ✅ 2. Se marca como ruta PÚBLICA
   @Post('login')
+  @HttpCode(HttpStatus.OK) // Devuelve un código 200 en lugar de 201
   login(@Body() loginDto: LoginUserDto) {
     return this.authService.login(loginDto);
   }
 
-  /**
-   * Endpoint para registrar un nuevo usuario PROPIETARIO.
-   * Recibe los datos del usuario, hashea la contraseña y lo guarda en la BD.
-   */
+  @Public() // ✅ 3. Se marca como ruta PÚBLICA
   @Post('register')
   register(@Body() createUserDto: CreateUserDto) {
     return this.authService.register(createUserDto);
   }
 
-  // --- 2. NUEVO ENDPOINT AÑADIDO ---
-  /**
-   * Endpoint para registrar un nuevo VETERINARIO.
-   * La cuenta se creará con un rol 'pendiente de aprobación'.
-   */
+  @Public() // ✅ 4. Se marca como ruta PÚBLICA
   @Post('register-vet')
   registerVet(@Body() registerVetDto: RegisterVetDto) {
     return this.authService.registerAsVet(registerVetDto);
   }
-  // --- FIN DEL CÓDIGO AÑADIDO ---
 
   /**
    * Endpoint protegido para obtener el perfil del usuario autenticado.
-   * Solo accesible si se envía un JWT válido en la cabecera de la petición.
+   * Ya no necesita @UseGuards porque el guard es global en main.ts
    */
   @Get('profile')
-  // Nota: Es más estándar usar AuthGuard('jwt') del paquete @nestjs/passport
-  // si estás usando la estrategia JWT que configuramos.
-  @UseGuards(AuthGuard('jwt')) 
-  profile(@Req() req: Request) {
-    // El AuthGuard ya hizo el trabajo de validar el token y adjuntar
-    // la información del usuario (el 'payload' del token) a la petición.
-    // Aquí, simplemente la devolvemos.
-    return req.user; // <-- req.user es más estándar que req['user']
+  profile(@GetUser() user: User) { // Se usa @GetUser para más seguridad y limpieza
+    return user;
   }
 }

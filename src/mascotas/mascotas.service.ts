@@ -1,9 +1,13 @@
 // src/mascotas/mascotas.service.ts
 
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { 
+  Injectable, 
+  NotFoundException, 
+  InternalServerErrorException, // Se añade para manejar errores inesperados
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Mascota } from '../mascotas/entities/mascota.entity'; // Corregí la ruta
+import { Mascota } from './entities/mascota.entity';
 import { CreateMascotaDto } from './dto/create-mascota.dto';
 import { UpdateMascotaDto } from './dto/update-mascota.dto';
 import { User } from '../users/entities/user.entity';
@@ -15,21 +19,37 @@ export class MascotasService {
     private readonly mascotaRepository: Repository<Mascota>,
   ) {}
 
-  // ✅ 1. El método create ahora acepta los archivos
+  // ✅ MÉTODO CREATE REESCRITO PARA SER MÁS SEGURO
   async create(createMascotaDto: CreateMascotaDto, propietario: User, files: Array<Express.Multer.File>): Promise<Mascota> {
     
-    // ✅ 2. Lógica para procesar las imágenes
-    // En un caso real, aquí subirías cada archivo a un servicio como Cloudinary y obtendrías las URLs.
-    // Por ahora, simularemos las URLs a partir del nombre del archivo.
+    // 1. Verificación de seguridad: Asegurarse de que el objeto propietario no es nulo.
+    if (!propietario || !propietario.id) {
+      console.error('ERROR CRÍTICO: El objeto "propietario" llegó nulo o sin ID al servicio.');
+      throw new InternalServerErrorException('No se pudo identificar al usuario para crear la mascota.');
+    }
+
     const urlsDeImagenes = files ? files.map(file => `/uploads/${file.filename}`) : [];
 
+    // 2. Creación explícita del objeto para evitar problemas con el spread operator (...)
+    // Se construye el objeto manualmente para garantizar que 'propietario' se asigne correctamente.
     const nuevaMascota = this.mascotaRepository.create({
-      ...createMascotaDto,
-      propietario: propietario,
-      imagenUrls: urlsDeImagenes, // ✅ 3. Se asigna el array de URLs
+      nombre: createMascotaDto.nombre,
+      especie: createMascotaDto.especie,
+      raza: createMascotaDto.raza,
+      fechaNacimiento: createMascotaDto.fechaNacimiento,
+      sexo: createMascotaDto.sexo,
+      color: createMascotaDto.color,
+      imagenUrls: urlsDeImagenes,
+      propietario: propietario, // Asignación directa del objeto User completo
     });
 
-    return this.mascotaRepository.save(nuevaMascota);
+    try {
+      return await this.mascotaRepository.save(nuevaMascota);
+    } catch (error) {
+      // Si aún falla, el log nos dará la pista final.
+      console.error('Error al guardar la mascota:', error);
+      throw new InternalServerErrorException('Ocurrió un error al guardar la mascota en la base de datos.');
+    }
   }
 
   async findMascotasByPropietario(propietarioId: number): Promise<Mascota[]> {
@@ -37,17 +57,15 @@ export class MascotasService {
       where: {
         propietario: { id: propietarioId },
       },
-      select: ['id', 'nombre', 'especie', 'raza', 'imagenUrls'], // Aseguramos enviar las URLs
+      select: ['id', 'nombre', 'especie', 'raza', 'imagenUrls'],
     });
   }
 
   async findOne(id: number): Promise<Mascota> {
     const mascota = await this.mascotaRepository.findOne({ 
       where: { id },
-      // ✅ MEJORA: Cargamos las relaciones para la página de detalles
       relations: ['historiaClinica', 'historiaClinica.atenciones'] 
     });
-
     if (!mascota) {
       throw new NotFoundException(`Mascota con id #${id} no encontrada`);
     }

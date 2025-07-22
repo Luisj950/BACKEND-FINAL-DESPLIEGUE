@@ -9,42 +9,45 @@ import {
   Param, 
   Delete, 
   UseGuards, 
-  Req, 
   ParseIntPipe,
-  UseInterceptors,     // ✅ 1. Se importa UseInterceptors
-  UploadedFiles        // ✅ 2. Se importa UploadedFiles
+  UseInterceptors,
+  UploadedFiles
 } from '@nestjs/common';
-import { FilesInterceptor } from '@nestjs/platform-express'; // ✅ 3. Se importa el interceptor de archivos
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { MascotasService } from './mascotas.service';
 import { CreateMascotaDto } from './dto/create-mascota.dto';
 import { UpdateMascotaDto } from './dto/update-mascota.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { Request } from 'express';
 import { User } from '../users/entities/user.entity';
+import { GetUser } from '../auth/decorators/get-user.decorator'; // ✅ 1. Se importa el decorador GetUser
 
 @Controller('mascotas')
-@UseGuards(AuthGuard('jwt'))
+
 export class MascotasController {
   constructor(private readonly mascotasService: MascotasService) {}
 
   @Post()
-  // ✅ 4. Se usa el interceptor para capturar los archivos del campo 'files'
-  @UseInterceptors(FilesInterceptor('files', 5)) // Acepta hasta 5 archivos
+  @UseInterceptors(FilesInterceptor('files', 5))
   create(
     @Body() createMascotaDto: CreateMascotaDto, 
-    @Req() req: Request,
-    // ✅ 5. Se reciben los archivos en el método
+    @GetUser() user: User, // ✅ 2. Se usa @GetUser() para obtener el usuario de forma segura
     @UploadedFiles() files: Array<Express.Multer.File> 
   ) {
-    const user = req.user as User;
-    // ✅ 6. Se envían los datos y los archivos al servicio
+    // Ya no se necesita 'req.user', 'user' viene directamente del token.
     return this.mascotasService.create(createMascotaDto, user, files);
   }
 
+  // Endpoint para que un usuario obtenga SUS PROPIAS mascotas.
   @Get('/mis-mascotas')
-  findMisMascotas(@Req() req: Request) {
-    const user = req.user as User;
+  findMisMascotas(@GetUser() user: User) { // ✅ 3. Se usa @GetUser() aquí también
     return this.mascotasService.findMascotasByPropietario(user.id);
+  }
+
+  // ✅ 4. ENDPOINT AÑADIDO: El que tu modal de agenda está buscando.
+  // Permite obtener las mascotas de cualquier propietario por su ID.
+  @Get('/propietario/:id')
+  findMascotasDePropietario(@Param('id', ParseIntPipe) id: number) {
+    return this.mascotasService.findMascotasByPropietario(id);
   }
 
   @Get(':id')
@@ -58,8 +61,7 @@ export class MascotasController {
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
-    const user = req.user as User;
+  remove(@Param('id', ParseIntPipe) id: number, @GetUser() user: User) { // ✅ 5. Se usa @GetUser() para la eliminación segura
     return this.mascotasService.remove(id, user.id);
   }
 }

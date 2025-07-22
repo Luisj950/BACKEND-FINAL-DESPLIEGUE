@@ -1,7 +1,26 @@
 // src/historias-clinicas/entities/atencion-medica.entity.ts
 
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { HistoriaClinica } from './historia-clinica.entity';
+import { User } from '../../users/entities/user.entity';
+
+// Enum para estandarizar las categorías de atención
+export enum CategoriaAtencion {
+  CONSULTA = 'Consulta',
+  CIRUGIA = 'Cirugía',
+  VACUNACION = 'Vacunación',
+  DESPARASITACION = 'Desparasitación',
+  EXAMEN_LABORATORIO = 'Examen de Laboratorio',
+  IMAGENOLOGIA = 'Imagenología', // Rayos X, Ecografías, etc.
+  URGENCIA = 'Urgencia',
+}
 
 @Entity({ name: 'atenciones_medicas' })
 export class AtencionMedica {
@@ -9,18 +28,41 @@ export class AtencionMedica {
   id: number;
 
   @CreateDateColumn()
-  fecha: Date;
+  fechaAtencion: Date;
 
-  @Column('text')
-  motivoConsulta: string;
+  @Column({
+    type: 'enum',
+    enum: CategoriaAtencion,
+    default: CategoriaAtencion.CONSULTA,
+    comment: 'Clasificación principal del tipo de atención',
+  })
+  categoria: CategoriaAtencion;
 
-  @Column('text')
+  @Column('text', { comment: 'Descripción de los síntomas o motivo de la consulta' })
+  anamnesis: string;
+
+  @Column('text', { comment: 'Diagnóstico del veterinario' })
   diagnostico: string;
 
-  @Column('text', { nullable: true })
-  tratamientoPrescrito: string;
+  @Column('text', { comment: 'Tratamiento prescrito o aplicado' })
+  tratamiento: string;
 
-  // Muchas atenciones médicas pertenecen a una sola historia clínica
-  @ManyToOne(() => HistoriaClinica, historia => historia.atenciones)
+  @Column('text', { nullable: true, comment: 'Notas adicionales, observaciones o indicaciones' })
+  observaciones?: string;
+
+  // --- Relaciones ---
+
+  @ManyToOne(() => HistoriaClinica, (historia) => historia.atenciones, {
+    onDelete: 'CASCADE', // Si se borra la historia, se borra esta atención
+  })
   historiaClinica: HistoriaClinica;
+
+  @ManyToOne(() => User, {
+    nullable: false, // Una atención siempre debe tener un veterinario
+    eager: true, // Carga los datos del veterinario automáticamente
+  })
+  veterinario: User;
+
+  @UpdateDateColumn()
+  fechaActualizacion: Date;
 }
