@@ -1,7 +1,7 @@
 // src/mascotas/dto/update-mascota.dto.ts
 
-import { IsString, IsOptional, IsDateString, IsEnum, IsArray, IsUrl } from 'class-validator';
-import { SexoMascota } from '../enums/sexo.enum'; // 👈 Se importa el enum también aquí
+import { IsString, IsOptional, IsDateString, IsEnum } from 'class-validator';
+import { SexoMascota } from '../enums/sexo.enum';
 
 export class UpdateMascotaDto {
   @IsString()
@@ -20,7 +20,6 @@ export class UpdateMascotaDto {
   @IsOptional()
   fechaNacimiento?: string;
 
-  // ✅ Se usa el enum aquí también
   @IsEnum(SexoMascota)
   @IsOptional()
   sexo?: SexoMascota;
@@ -29,8 +28,6 @@ export class UpdateMascotaDto {
   @IsOptional()
   color?: string;
 
-  @IsArray()
-  @IsUrl({}, { each: true })
-  @IsOptional()
-  imagenUrls?: string[];
+  // Se elimina 'imagenUrls'. El controlador se encargará de gestionar 
+  // los archivos subidos y actualizar las URLs correspondientes.
 }

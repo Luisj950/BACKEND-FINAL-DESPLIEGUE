@@ -19,10 +19,10 @@ import { CreateMascotaDto } from './dto/create-mascota.dto';
 import { UpdateMascotaDto } from './dto/update-mascota.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { User } from '../users/entities/user.entity';
-import { GetUser } from '../auth/decorators/get-user.decorator'; // ✅ 1. Se importa el decorador GetUser
+import { GetUser } from '../auth/decorators/get-user.decorator';
 
 @Controller('mascotas')
-
+@UseGuards(AuthGuard()) // ✅ AÑADE ESTA LÍNEA AQUÍ
 export class MascotasController {
   constructor(private readonly mascotasService: MascotasService) {}
 
@@ -30,21 +30,17 @@ export class MascotasController {
   @UseInterceptors(FilesInterceptor('files', 5))
   create(
     @Body() createMascotaDto: CreateMascotaDto, 
-    @GetUser() user: User, // ✅ 2. Se usa @GetUser() para obtener el usuario de forma segura
+    @GetUser() user: User,
     @UploadedFiles() files: Array<Express.Multer.File> 
   ) {
-    // Ya no se necesita 'req.user', 'user' viene directamente del token.
     return this.mascotasService.create(createMascotaDto, user, files);
   }
 
-  // Endpoint para que un usuario obtenga SUS PROPIAS mascotas.
   @Get('/mis-mascotas')
-  findMisMascotas(@GetUser() user: User) { // ✅ 3. Se usa @GetUser() aquí también
+  findMisMascotas(@GetUser() user: User) {
     return this.mascotasService.findMascotasByPropietario(user.id);
   }
 
-  // ✅ 4. ENDPOINT AÑADIDO: El que tu modal de agenda está buscando.
-  // Permite obtener las mascotas de cualquier propietario por su ID.
   @Get('/propietario/:id')
   findMascotasDePropietario(@Param('id', ParseIntPipe) id: number) {
     return this.mascotasService.findMascotasByPropietario(id);
@@ -56,12 +52,17 @@ export class MascotasController {
   }
 
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateMascotaDto: UpdateMascotaDto) {
-    return this.mascotasService.update(id, updateMascotaDto);
+  @UseInterceptors(FilesInterceptor('files', 5))
+  update(
+    @Param('id', ParseIntPipe) id: number, 
+    @Body() updateMascotaDto: UpdateMascotaDto,
+    @UploadedFiles() files: Array<Express.Multer.File>
+  ) {
+    return this.mascotasService.update(id, updateMascotaDto, files);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number, @GetUser() user: User) { // ✅ 5. Se usa @GetUser() para la eliminación segura
+  remove(@Param('id', ParseIntPipe) id: number, @GetUser() user: User) {
     return this.mascotasService.remove(id, user.id);
   }
 }

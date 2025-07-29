@@ -3,7 +3,7 @@
 import { 
   Injectable, 
   NotFoundException, 
-  InternalServerErrorException, // Se añade para manejar errores inesperados
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -19,34 +19,21 @@ export class MascotasService {
     private readonly mascotaRepository: Repository<Mascota>,
   ) {}
 
-  // ✅ MÉTODO CREATE REESCRITO PARA SER MÁS SEGURO
+  // ... (tu método create y otros métodos se mantienen igual)
   async create(createMascotaDto: CreateMascotaDto, propietario: User, files: Array<Express.Multer.File>): Promise<Mascota> {
-    
-    // 1. Verificación de seguridad: Asegurarse de que el objeto propietario no es nulo.
     if (!propietario || !propietario.id) {
       console.error('ERROR CRÍTICO: El objeto "propietario" llegó nulo o sin ID al servicio.');
       throw new InternalServerErrorException('No se pudo identificar al usuario para crear la mascota.');
     }
-
     const urlsDeImagenes = files ? files.map(file => `/uploads/${file.filename}`) : [];
-
-    // 2. Creación explícita del objeto para evitar problemas con el spread operator (...)
-    // Se construye el objeto manualmente para garantizar que 'propietario' se asigne correctamente.
     const nuevaMascota = this.mascotaRepository.create({
-      nombre: createMascotaDto.nombre,
-      especie: createMascotaDto.especie,
-      raza: createMascotaDto.raza,
-      fechaNacimiento: createMascotaDto.fechaNacimiento,
-      sexo: createMascotaDto.sexo,
-      color: createMascotaDto.color,
+      ...createMascotaDto,
       imagenUrls: urlsDeImagenes,
-      propietario: propietario, // Asignación directa del objeto User completo
+      propietario: propietario,
     });
-
     try {
       return await this.mascotaRepository.save(nuevaMascota);
     } catch (error) {
-      // Si aún falla, el log nos dará la pista final.
       console.error('Error al guardar la mascota:', error);
       throw new InternalServerErrorException('Ocurrió un error al guardar la mascota en la base de datos.');
     }
@@ -54,9 +41,7 @@ export class MascotasService {
 
   async findMascotasByPropietario(propietarioId: number): Promise<Mascota[]> {
     return this.mascotaRepository.find({
-      where: {
-        propietario: { id: propietarioId },
-      },
+      where: { propietario: { id: propietarioId } },
       select: ['id', 'nombre', 'especie', 'raza', 'imagenUrls'],
     });
   }
@@ -64,7 +49,7 @@ export class MascotasService {
   async findOne(id: number): Promise<Mascota> {
     const mascota = await this.mascotaRepository.findOne({ 
       where: { id },
-      relations: ['historiaClinica', 'historiaClinica.atenciones'] 
+      relations: ['propietario', 'historiaClinica', 'historiaClinica.atenciones', 'historiaClinica.atenciones.veterinario'] 
     });
     if (!mascota) {
       throw new NotFoundException(`Mascota con id #${id} no encontrada`);
@@ -72,15 +57,47 @@ export class MascotasService {
     return mascota;
   }
 
-  async update(id: number, updateMascotaDto: UpdateMascotaDto): Promise<Mascota> {
+  // ✅ --- FUNCIÓN UPDATE CON REGISTROS DE DEPURACIÓN ---
+  async update(id: number, updateMascotaDto: UpdateMascotaDto, files: Array<Express.Multer.File>): Promise<Mascota> {
+    
+    console.log('--- INICIANDO PROCESO DE ACTUALIZACIÓN DE MASCOTA ---');
+    console.log(`Buscando mascota con ID: ${id}`);
+    console.log('Datos recibidos en el DTO:', updateMascotaDto);
+    console.log(`Número de archivos recibidos: ${files ? files.length : 0}`);
+
+    // 1. Cargamos la mascota existente con sus datos actuales
     const mascota = await this.mascotaRepository.preload({
       id: id,
       ...updateMascotaDto,
     });
+
     if (!mascota) {
+      console.error(`ERROR: No se encontró la mascota con ID #${id} para precargar.`);
       throw new NotFoundException(`La mascota con el ID #${id} no fue encontrada.`);
     }
-    return this.mascotaRepository.save(mascota);
+    
+    console.log('Mascota encontrada y precargada con los nuevos datos de texto.');
+
+    // 2. Si se subieron nuevos archivos, los procesamos
+    if (files && files.length > 0) {
+      const urlsDeImagenes = files.map(file => `/uploads/${file.filename}`);
+      console.log('Nuevas URLs de imagen generadas:', urlsDeImagenes);
+      mascota.imagenUrls = urlsDeImagenes;
+    } else {
+      console.log('No se subieron nuevas imágenes, se mantienen las existentes.');
+    }
+
+    // 3. Guardamos la mascota
+    try {
+      console.log('Intentando guardar la mascota actualizada en la base de datos...');
+      const mascotaGuardada = await this.mascotaRepository.save(mascota);
+      console.log('--- ACTUALIZACIÓN COMPLETADA CON ÉXITO ---');
+      return mascotaGuardada;
+    } catch (error) {
+      console.error('--- ERROR DURANTE EL GUARDADO EN LA BASE DE DATOS ---');
+      console.error(error); // Mostramos el error completo de la base de datos
+      throw new InternalServerErrorException('Ocurrió un error al actualizar la mascota.');
+    }
   }
 
   async remove(id: number, propietarioId: number): Promise<void> {

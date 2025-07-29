@@ -1,3 +1,5 @@
+// src/auth/auth.service.ts
+
 import { 
   Injectable, 
   UnauthorizedException, 
@@ -22,7 +24,6 @@ export class AuthService {
    * Autentica a un usuario y devuelve un token JWT si las credenciales son válidas.
    */
   async login(loginDto: LoginUserDto) {
-    // Se usa el método correcto que sí trae la contraseña
     const user = await this.usersService.findOneByEmailForAuth(loginDto.email);
 
     const isPasswordMatching = user ? await bcrypt.compare(loginDto.password, user.password) : false;
@@ -36,7 +37,12 @@ export class AuthService {
       email: user.email, 
       rol: user.rol, 
       nombres: user.nombres,     
-      apellidos: user.apellidos
+      apellidos: user.apellidos,
+      // ✅ --- CAMPOS AÑADIDOS PARA EL PERFIL ---
+      telefono: user.telefono,
+      direccion: user.direccion,
+      especialidad: user.especialidad,
+      fechaCreacion: user.fechaCreacion,
     };
 
     return {
