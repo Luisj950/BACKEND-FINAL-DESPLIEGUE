@@ -14,15 +14,13 @@ async function bootstrap() {
     transform: true,
   }));
 
-  // ✅ CORRECCIÓN: Se reemplaza app.enableCors() con la configuración detallada.
+  // ✅ CORRECCIÓN: Usamos una versión más compatible de la configuración de CORS.
   app.enableCors({
     origin: [
       'https://piensa-fronted-despliegue-56rk.vercel.app', // Tu frontend en producción
       'http://localhost:5173', // Tu frontend en desarrollo (ajusta el puerto si es diferente)
     ],
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    allowedHeaders: 'Content-Type, Accept, Authorization',
-    credentials: true,
+    credentials: true, // Permite el envío de credenciales (tokens, cookies)
   });
 
   const reflector = app.get(Reflector);
