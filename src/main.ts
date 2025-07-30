@@ -3,7 +3,7 @@
 import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard'; // ✅ 1. Importa el NUEVO guard personalizado
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -14,10 +14,17 @@ async function bootstrap() {
     transform: true,
   }));
 
-  app.enableCors();
+  // ✅ CORRECCIÓN: Se reemplaza app.enableCors() con la configuración detallada.
+  app.enableCors({
+    origin: [
+      'https://piensa-fronted-despliegue-56rk.vercel.app', // Tu frontend en producción
+      'http://localhost:5173', // Tu frontend en desarrollo (ajusta el puerto si es diferente)
+    ],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    allowedHeaders: 'Content-Type, Accept, Authorization',
+    credentials: true,
+  });
 
-  // ✅ 2. Se usa el nuevo JwtAuthGuard que respeta el decorador @Public.
-  // Esto asegura la autenticación en toda la app, EXCEPTO en las rutas públicas.
   const reflector = app.get(Reflector);
   app.useGlobalGuards(new JwtAuthGuard(reflector));
 
